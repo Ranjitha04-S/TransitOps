@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, CreditCard, Calendar, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Mail, Lock, User, CreditCard, Calendar, AlertTriangle, CheckCircle2, Phone } from 'lucide-react';
 import useAuth from '../hooks/useAuth';
 import AuthLayout from '../components/layout/AuthLayout';
 import Input from '../components/common/Input';
@@ -57,15 +57,19 @@ const Login = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'Driver', // 'Driver' | 'Fleet Manager'
+    role: 'Driver', // 'Driver' | 'Fleet Manager' | 'Safety Officer' | 'Financial Analyst'
     licenseNumber: '',
-    licenseExpirationDate: ''
+    licenseExpirationDate: '',
+    licenseCategory: 'HGV Class A',
+    contactNumber: ''
   });
 
   // Role options matching backend requirements
   const roleOptions = [
     { value: 'Driver', label: 'Transit Driver' },
-    { value: 'Fleet Manager', label: 'Fleet Manager' }
+    { value: 'Fleet Manager', label: 'Fleet Manager' },
+    { value: 'Safety Officer', label: 'Safety Officer' },
+    { value: 'Financial Analyst', label: 'Financial Analyst' }
   ];
 
   // Handlers
@@ -151,6 +155,12 @@ const Login = () => {
       if (!registerFields.licenseExpirationDate) {
         newErrors.licenseExpirationDate = 'License expiration date is required';
       }
+      if (!registerFields.licenseCategory.trim()) {
+        newErrors.licenseCategory = 'License category is required';
+      }
+      if (!registerFields.contactNumber.trim()) {
+        newErrors.contactNumber = 'Contact number is required';
+      }
     }
     
     setErrors(newErrors);
@@ -197,7 +207,9 @@ const Login = () => {
       // Add driver details if selected
       if (registerFields.role === 'Driver') {
         payload.licenseNumber = registerFields.licenseNumber;
-        payload.licenseExpirationDate = registerFields.licenseExpirationDate;
+        payload.licenseExpiryDate = registerFields.licenseExpirationDate;
+        payload.licenseCategory = registerFields.licenseCategory;
+        payload.contactNumber = registerFields.contactNumber;
       }
 
       await register(payload);
@@ -214,7 +226,9 @@ const Login = () => {
         confirmPassword: '',
         role: 'Driver',
         licenseNumber: '',
-        licenseExpirationDate: ''
+        licenseExpirationDate: '',
+        licenseCategory: 'HGV Class A',
+        contactNumber: ''
       });
     } catch (err) {
       console.error(err);
@@ -415,6 +429,33 @@ const Login = () => {
                   onChange={handleRegisterChange}
                   error={errors.licenseExpirationDate}
                   icon={Calendar}
+                  required
+                />
+
+                <Select
+                  label="License Category"
+                  name="licenseCategory"
+                  options={[
+                    { value: 'HGV Class A', label: 'HGV Class A' },
+                    { value: 'HGV Class B', label: 'HGV Class B' },
+                    { value: 'Light Commercial', label: 'Light Commercial' },
+                    { value: 'Standard Passenger', label: 'Standard Passenger' }
+                  ]}
+                  value={registerFields.licenseCategory}
+                  onChange={handleRegisterChange}
+                  error={errors.licenseCategory}
+                  required
+                />
+
+                <Input
+                  label="Contact Phone Number"
+                  type="text"
+                  name="contactNumber"
+                  placeholder="e.g. +91 9988776655"
+                  value={registerFields.contactNumber}
+                  onChange={handleRegisterChange}
+                  error={errors.contactNumber}
+                  icon={Phone}
                   required
                 />
               </div>

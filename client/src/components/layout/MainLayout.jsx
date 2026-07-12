@@ -35,6 +35,7 @@ const MainLayout = ({ children }) => {
     { name: 'Trips', path: '/trips', icon: Navigation, roles: ['Fleet Manager', 'Driver', 'Safety Officer', 'Financial Analyst'] },
     { name: 'Expenses', path: '/expenses', icon: Coins, roles: ['Fleet Manager', 'Financial Analyst'] },
     { name: 'Reports', path: '/reports', icon: FileBarChart, roles: ['Fleet Manager', 'Financial Analyst', 'Safety Officer'] },
+    { name: 'Settings', path: '/settings', icon: SettingsIcon, roles: null }, // all roles
   ];
 
   // Filter menu items by role
