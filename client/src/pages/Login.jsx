@@ -228,10 +228,28 @@ const Login = () => {
   return (
     <AuthLayout>
       <div className="glass-panel p-8 md:p-10 rounded-2xl shadow-2xl relative border border-border">
+        {/* Branding header inside the card */}
+        <div className="flex items-center gap-3 justify-center mb-6 pb-5 border-b border-border">
+          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/25">
+            <svg className="w-5 h-5 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1-1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+            </svg>
+          </div>
+          <div className="text-left">
+            <h1 className="text-xl font-extrabold tracking-wider text-text-primary uppercase leading-tight">
+              TRANSPORTOPS
+            </h1>
+            <span className="text-[10px] tracking-widest text-text-muted font-bold uppercase -mt-1 block">
+              Ops Control
+            </span>
+          </div>
+        </div>
+
         {/* Banner header inside card */}
         <div className="mb-6">
           <h2 className="text-2xl font-extrabold text-text-primary tracking-tight">
-            {mode === 'login' ? 'System Login' : 'Deploy Account'}
+            {mode === 'login' ? 'Login' : 'Deploy Account'}
           </h2>
           <p className="text-text-muted text-xs mt-1">
             {mode === 'login' 
