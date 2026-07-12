@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Truck, 
-  TrendingUp, 
+  Wrench, 
   Settings as SettingsIcon, 
   LogOut, 
   Menu, 
@@ -21,8 +21,8 @@ const MainLayout = ({ children }) => {
 
   const menuItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { name: 'Fleet', path: '/fleet', icon: Truck },
-    { name: 'Analytics', path: '/analytics', icon: TrendingUp },
+    { name: 'Registries', path: '/fleet', icon: Truck },
+    { name: 'Maintenance', path: '/maintenance', icon: Wrench },
     { name: 'Settings', path: '/settings', icon: SettingsIcon },
   ];
 

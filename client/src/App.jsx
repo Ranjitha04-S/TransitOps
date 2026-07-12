@@ -3,6 +3,7 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Maintenance from './pages/Maintenance';
+import Registries from './pages/Registries';
 
 function App() {
   return (
@@ -16,9 +17,16 @@ function App() {
           </ProtectedRoute>
         }
       />
-      
       <Route
         path="/fleet"
+        element={
+          <ProtectedRoute allowedRoles={['Fleet Manager']}>
+            <Registries />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/maintenance"
         element={
           <ProtectedRoute allowedRoles={['Fleet Manager']}>
             <Maintenance />
