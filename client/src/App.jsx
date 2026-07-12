@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import Maintenance from './pages/Maintenance';
 import Registries from './pages/Registries';
 import Trips from './pages/Trips';
+import Settings from './pages/Settings';
 
 function App() {
   return (
@@ -39,6 +40,14 @@ function App() {
         element={
           <ProtectedRoute allowedRoles={['Fleet Manager', 'Driver']}>
             <Trips />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Settings />
           </ProtectedRoute>
         }
       />
