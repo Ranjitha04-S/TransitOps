@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { 
   LayoutDashboard, 
   Truck, 
@@ -9,8 +10,7 @@ import {
   LogOut, 
   Menu, 
   X, 
-  User,
-  Bell
+  User
 } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 
@@ -19,6 +19,10 @@ const MainLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Redux Selectors
+  const settingsState = useSelector((state) => state.settings);
+  const operatorName = settingsState?.profileName || user?.name || 'Neural Operator';
 
   const menuItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
@@ -66,18 +70,13 @@ const MainLayout = ({ children }) => {
 
         {/* Topbar Right Section */}
         <div className="flex items-center gap-4">
-          <button className="p-2 rounded-full hover:bg-surface-alt text-text-secondary relative transition-colors">
-            <Bell size={18} />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
-          </button>
-
           {/* User Profile */}
-          <div className="flex items-center gap-2 border-l border-border pl-4">
+          <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-surface-alt border border-border flex items-center justify-center text-text-secondary">
               <User size={16} />
             </div>
             <div className="hidden md:flex flex-col items-start leading-none">
-              <span className="text-xs font-semibold text-text-primary">{user?.name}</span>
+              <span className="text-xs font-semibold text-text-primary">{operatorName}</span>
               <span className="text-[9px] text-text-muted font-semibold mt-0.5">{user?.role}</span>
             </div>
           </div>
