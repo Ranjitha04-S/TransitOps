@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Maintenance from './pages/Maintenance';
 import Registries from './pages/Registries';
+import Trips from './pages/Trips';
 
 function App() {
   return (
@@ -30,6 +31,14 @@ function App() {
         element={
           <ProtectedRoute allowedRoles={['Fleet Manager']}>
             <Maintenance />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/trips"
+        element={
+          <ProtectedRoute allowedRoles={['Fleet Manager', 'Driver']}>
+            <Trips />
           </ProtectedRoute>
         }
       />

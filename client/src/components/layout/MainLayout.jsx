@@ -4,6 +4,7 @@ import {
   LayoutDashboard, 
   Truck, 
   Wrench, 
+  Navigation,
   Settings as SettingsIcon, 
   LogOut, 
   Menu, 
@@ -23,6 +24,7 @@ const MainLayout = ({ children }) => {
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'Registries', path: '/fleet', icon: Truck },
     { name: 'Maintenance', path: '/maintenance', icon: Wrench },
+    { name: 'Trips', path: '/trips', icon: Navigation },
     { name: 'Settings', path: '/settings', icon: SettingsIcon },
   ];
 
