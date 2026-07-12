@@ -1,12 +1,17 @@
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition, useContext } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
   fetchVehiclesList, 
-  addVehicle, 
+  addVehicle,
+  updateVehicle,
+  deleteVehicle,
   fetchDriversList, 
-  addDriver, 
+  addDriver,
+  updateDriver,
+  deleteDriver,
   clearRegistryStatus 
 } from '../redux/registriesSlice';
+import AuthContext from '../context/AuthContext';
 import MainLayout from '../components/layout/MainLayout';
 import DataTable from '../components/common/DataTable';
 import Badge from '../components/common/Badge';
@@ -20,11 +25,16 @@ import {
   Plus, 
   Search, 
   ShieldAlert,
-  AlertCircle
+  AlertCircle,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 
 const Registries = () => {
   const dispatch = useDispatch();
+  const { user } = useContext(AuthContext);
+  const userRole = user?.role;
+
   const { 
     vehicles, 
     drivers, 
@@ -35,10 +45,7 @@ const Registries = () => {
     successMessage 
   } = useSelector((state) => state.registries);
 
-  // Active Registry Tab: 'vehicles' | 'drivers'
   const [activeTab, setActiveTab] = useState('vehicles');
-
-  // Search filter query
   const [searchQuery, setSearchQuery] = useState('');
   const [, startTransition] = useTransition();
 
@@ -52,9 +59,11 @@ const Registries = () => {
   // Modal States
   const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
   const [isDriverModalOpen, setIsDriverModalOpen] = useState(false);
+  const [editingVehicle, setEditingVehicle] = useState(null);
+  const [editingDriver, setEditingDriver] = useState(null);
 
   // Forms State
-  const [vehicleForm, setVehicleForm] = useState({
+  const defaultVehicleForm = {
     registrationNumber: '',
     name: '',
     model: '',
@@ -63,22 +72,23 @@ const Registries = () => {
     maxLoadCapacity: '',
     odometer: '0',
     acquisitionCost: ''
-  });
+  };
 
-  const [driverForm, setDriverForm] = useState({
+  const defaultDriverForm = {
     name: '',
     email: '',
-    password: 'driver-default-key-123', // required by backend creation schema
+    password: 'driver-default-key-123',
     licenseNumber: '',
     licenseCategory: 'Class A',
     licenseExpiryDate: '',
     contactNumber: '',
     safetyScore: '90'
-  });
+  };
 
+  const [vehicleForm, setVehicleForm] = useState(defaultVehicleForm);
+  const [driverForm, setDriverForm] = useState(defaultDriverForm);
   const [formErrors, setFormErrors] = useState({});
 
-  // Sync Registry fetch based on Active Tab
   useEffect(() => {
     if (activeTab === 'vehicles') {
       dispatch(fetchVehiclesList({ ...vehicleFilters, search: searchQuery }));
@@ -87,7 +97,6 @@ const Registries = () => {
     }
   }, [dispatch, activeTab, vehicleFilters, searchQuery]);
 
-  // Tab switch handler
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     setSearchQuery('');
@@ -100,7 +109,75 @@ const Registries = () => {
     setVehicleFilters((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Add Vehicle Submit
+  // Open ADD vehicle modal
+  const handleAddVehicle = () => {
+    setEditingVehicle(null);
+    setVehicleForm(defaultVehicleForm);
+    setFormErrors({});
+    setIsVehicleModalOpen(true);
+  };
+
+  // Open EDIT vehicle modal with pre-filled data
+  const handleEditVehicle = (vehicle) => {
+    setEditingVehicle(vehicle);
+    setVehicleForm({
+      registrationNumber: vehicle.registrationNumber || '',
+      name: vehicle.name || '',
+      model: vehicle.model || '',
+      type: vehicle.type || 'Truck',
+      region: vehicle.region || 'North',
+      maxLoadCapacity: String(vehicle.maxLoadCapacity || ''),
+      odometer: String(vehicle.odometer || '0'),
+      acquisitionCost: String(vehicle.acquisitionCost || '')
+    });
+    setFormErrors({});
+    setIsVehicleModalOpen(true);
+  };
+
+  // Handle vehicle delete
+  const handleDeleteVehicle = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this vehicle? This action cannot be undone.')) return;
+    const result = await dispatch(deleteVehicle(id));
+    if (deleteVehicle.fulfilled.match(result)) {
+      setTimeout(() => dispatch(clearRegistryStatus()), 3000);
+    }
+  };
+
+  // Open ADD driver modal
+  const handleAddDriver = () => {
+    setEditingDriver(null);
+    setDriverForm(defaultDriverForm);
+    setFormErrors({});
+    setIsDriverModalOpen(true);
+  };
+
+  // Open EDIT driver modal with pre-filled data
+  const handleEditDriver = (driver) => {
+    setEditingDriver(driver);
+    setDriverForm({
+      name: driver.name || '',
+      email: driver.email || '',
+      password: 'driver-default-key-123',
+      licenseNumber: driver.licenseNumber || '',
+      licenseCategory: driver.licenseCategory || 'Class A',
+      licenseExpiryDate: driver.licenseExpiryDate || '',
+      contactNumber: driver.contactNumber || '',
+      safetyScore: String(driver.safetyScore ?? '90')
+    });
+    setFormErrors({});
+    setIsDriverModalOpen(true);
+  };
+
+  // Handle driver delete
+  const handleDeleteDriver = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this driver profile?')) return;
+    const result = await dispatch(deleteDriver(id));
+    if (deleteDriver.fulfilled.match(result)) {
+      setTimeout(() => dispatch(clearRegistryStatus()), 3000);
+    }
+  };
+
+  // Add / Update Vehicle Submit
   const handleVehicleSubmit = async (e) => {
     e.preventDefault();
     const errors = {};
@@ -134,33 +211,34 @@ const Registries = () => {
       acquisitionCost: parseFloat(vehicleForm.acquisitionCost)
     };
 
-    const result = await dispatch(addVehicle(payload));
-    if (addVehicle.fulfilled.match(result)) {
+    let result;
+    if (editingVehicle) {
+      result = await dispatch(updateVehicle({ id: editingVehicle.id, vehicleData: payload }));
+    } else {
+      result = await dispatch(addVehicle(payload));
+    }
+
+    const actionCreator = editingVehicle ? updateVehicle : addVehicle;
+    if (actionCreator.fulfilled.match(result)) {
       setIsVehicleModalOpen(false);
-      setVehicleForm({
-        registrationNumber: '',
-        name: '',
-        model: '',
-        type: 'Truck',
-        region: 'North',
-        maxLoadCapacity: '',
-        odometer: '0',
-        acquisitionCost: ''
-      });
+      setVehicleForm(defaultVehicleForm);
+      setEditingVehicle(null);
       dispatch(fetchVehiclesList(vehicleFilters));
       setTimeout(() => dispatch(clearRegistryStatus()), 3000);
     }
   };
 
-  // Add Driver Submit
+  // Add / Update Driver Submit
   const handleDriverSubmit = async (e) => {
     e.preventDefault();
     const errors = {};
     if (!driverForm.name.trim()) errors.name = 'Driver full name is required';
-    if (!driverForm.email.trim()) {
-      errors.email = 'Workstation email is required';
-    } else if (!/\S+@\S+\.\S+/.test(driverForm.email)) {
-      errors.email = 'Invalid email address format';
+    if (!editingDriver) {
+      if (!driverForm.email.trim()) {
+        errors.email = 'Workstation email is required';
+      } else if (!/\S+@\S+\.\S+/.test(driverForm.email)) {
+        errors.email = 'Invalid email address format';
+      }
     }
     if (!driverForm.licenseNumber.trim()) errors.licenseNumber = 'License number is required';
     if (!driverForm.licenseExpiryDate) errors.licenseExpiryDate = 'License expiration date is required';
@@ -177,36 +255,50 @@ const Registries = () => {
     }
 
     setFormErrors({});
-    const payload = {
-      name: driverForm.name,
-      email: driverForm.email,
-      password: driverForm.password,
-      licenseNumber: driverForm.licenseNumber,
-      licenseCategory: driverForm.licenseCategory,
-      licenseExpiryDate: driverForm.licenseExpiryDate,
-      contactNumber: driverForm.contactNumber,
-      safetyScore: parseInt(driverForm.safetyScore)
-    };
 
-    const result = await dispatch(addDriver(payload));
-    if (addDriver.fulfilled.match(result)) {
-      setIsDriverModalOpen(false);
-      setDriverForm({
-        name: '',
-        email: '',
-        password: 'driver-default-key-123',
-        licenseNumber: '',
-        licenseCategory: 'Class A',
-        licenseExpiryDate: '',
-        contactNumber: '',
-        safetyScore: '90'
-      });
-      dispatch(fetchDriversList());
-      setTimeout(() => dispatch(clearRegistryStatus()), 3000);
+    let result;
+    if (editingDriver) {
+      const payload = {
+        name: driverForm.name,
+        licenseNumber: driverForm.licenseNumber,
+        licenseCategory: driverForm.licenseCategory,
+        licenseExpiryDate: driverForm.licenseExpiryDate,
+        contactNumber: driverForm.contactNumber,
+        safetyScore: parseInt(driverForm.safetyScore)
+      };
+      result = await dispatch(updateDriver({ id: editingDriver.id, driverData: payload }));
+      if (updateDriver.fulfilled.match(result)) {
+        setIsDriverModalOpen(false);
+        setEditingDriver(null);
+        dispatch(fetchDriversList());
+        setTimeout(() => dispatch(clearRegistryStatus()), 3000);
+      }
+    } else {
+      const payload = {
+        name: driverForm.name,
+        email: driverForm.email,
+        password: driverForm.password,
+        licenseNumber: driverForm.licenseNumber,
+        licenseCategory: driverForm.licenseCategory,
+        licenseExpiryDate: driverForm.licenseExpiryDate,
+        contactNumber: driverForm.contactNumber,
+        safetyScore: parseInt(driverForm.safetyScore)
+      };
+      result = await dispatch(addDriver(payload));
+      if (addDriver.fulfilled.match(result)) {
+        setIsDriverModalOpen(false);
+        setDriverForm(defaultDriverForm);
+        dispatch(fetchDriversList());
+        setTimeout(() => dispatch(clearRegistryStatus()), 3000);
+      }
     }
   };
 
-  // Define Columns structures
+  const isFleetManager = userRole === 'Fleet Manager';
+  const isSafetyOfficer = userRole === 'Safety Officer';
+  const canEditDriver = isFleetManager || isSafetyOfficer;
+
+  // Vehicle columns — action column only for Fleet Managers
   const vehicleColumns = [
     {
       key: 'registrationNumber',
@@ -267,7 +359,32 @@ const Registries = () => {
         };
         return <Badge variant={variants[row.status] || 'neutral'}>{row.status}</Badge>;
       }
-    }
+    },
+    ...(isFleetManager ? [{
+      key: 'actions',
+      label: 'Actions',
+      sortable: false,
+      render: (row) => (
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => handleEditVehicle(row)}
+            className="flex items-center gap-1 text-primary text-xs font-semibold cursor-pointer hover:opacity-70 transition-opacity"
+            title="Edit Vehicle"
+          >
+            <Pencil size={13} />
+            <span>Edit</span>
+          </button>
+          <button
+            onClick={() => handleDeleteVehicle(row.id)}
+            className="flex items-center gap-1 text-danger text-xs font-semibold cursor-pointer hover:opacity-70 transition-opacity"
+            title="Delete Vehicle"
+          >
+            <Trash2 size={13} />
+            <span>Delete</span>
+          </button>
+        </div>
+      )
+    }] : [])
   ];
 
   const driverColumns = [
@@ -339,30 +456,42 @@ const Registries = () => {
         const variants = {
           Available: 'success',
           'On Trip': 'info',
-          'Suspended': 'danger'
+          Suspended: 'danger'
         };
         return <Badge variant={variants[row.status] || 'neutral'}>{row.status}</Badge>;
       }
-    }
+    },
+    ...(canEditDriver ? [{
+      key: 'actions',
+      label: 'Actions',
+      sortable: false,
+      render: (row) => (
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => handleEditDriver(row)}
+            className="flex items-center gap-1 text-primary text-xs font-semibold cursor-pointer hover:opacity-70 transition-opacity"
+            title="Edit Driver"
+          >
+            <Pencil size={13} />
+            <span>Edit</span>
+          </button>
+          {isFleetManager && (
+            <button
+              onClick={() => handleDeleteDriver(row.id)}
+              className="flex items-center gap-1 text-danger text-xs font-semibold cursor-pointer hover:opacity-70 transition-opacity"
+              title="Delete Driver"
+            >
+              <Trash2 size={13} />
+              <span>Delete</span>
+            </button>
+          )}
+        </div>
+      )
+    }] : [])
   ];
 
-  // Helper values for offline display simulation
-  const defaultVehicles = [
-    { id: 1, registrationNumber: 'TX-892-PL', name: 'Freightliner Cascadia', model: '2024', type: 'Truck', region: 'North', maxLoadCapacity: 15000, odometer: 12450, acquisitionCost: 135000, status: 'Available' },
-    { id: 2, registrationNumber: 'CA-481-QA', name: 'Volvo VNL 860', model: '2023', type: 'Truck', region: 'West', maxLoadCapacity: 16000, odometer: 8320, acquisitionCost: 142000, status: 'On Trip' },
-    { id: 3, registrationNumber: 'NY-992-XD', name: 'Peterbilt 579', model: '2022', type: 'Truck', region: 'East', maxLoadCapacity: 15500, odometer: 14020, acquisitionCost: 138000, status: 'In Shop' },
-    { id: 4, registrationNumber: 'FL-234-ZZ', name: 'Ford Transit 350', model: '2021', type: 'Van', region: 'South', maxLoadCapacity: 3500, odometer: 5120, acquisitionCost: 48000, status: 'Available' }
-  ];
-
-  const defaultDrivers = [
-    { id: 1, name: 'Marcus Webb', email: 'mwebb@trnspot.com', licenseNumber: 'DL-9082341', licenseCategory: 'Class A', licenseExpiryDate: '2028-11-12', contactNumber: '555-0192', safetyScore: 92, status: 'On Trip', isLicenseExpired: false },
-    { id: 2, name: 'Sarah Lin', email: 'slin@trnspot.com', licenseNumber: 'DL-3891022', licenseCategory: 'Class B', licenseExpiryDate: '2027-04-18', contactNumber: '555-0143', safetyScore: 78, status: 'Available', isLicenseExpired: false },
-    { id: 3, name: 'David Ross', email: 'dross@trnspot.com', licenseNumber: 'DL-1289012', licenseCategory: 'Class A', licenseExpiryDate: '2026-06-01', contactNumber: '555-0177', safetyScore: 88, status: 'Available', isLicenseExpired: true },
-    { id: 4, name: 'Alex Mercer', email: 'amercer@trnspot.com', licenseNumber: 'DL-5678234', licenseCategory: 'Class C', licenseExpiryDate: '2029-01-20', contactNumber: '555-0111', safetyScore: 64, status: 'Available', isLicenseExpired: false }
-  ];
-
-  const displayVehicles = vehicles.length > 0 ? vehicles : defaultVehicles;
-  const displayDrivers = drivers.length > 0 ? drivers : defaultDrivers;
+  const displayVehicles = vehicles.length > 0 ? vehicles : [];
+  const displayDrivers = drivers.length > 0 ? drivers : [];
 
   return (
     <MainLayout>
@@ -395,14 +524,27 @@ const Registries = () => {
             </button>
           </div>
 
-          <Button
-            variant="primary"
-            onClick={() => activeTab === 'vehicles' ? setIsVehicleModalOpen(true) : setIsDriverModalOpen(true)}
-            className="flex items-center gap-2 py-2.5"
-          >
-            <Plus size={15} />
-            <span>Add {activeTab === 'vehicles' ? 'Vehicle' : 'Driver'}</span>
-          </Button>
+          {/* Add button: only Fleet Manager can add vehicles; Fleet Manager + Safety Officer can add drivers */}
+          {activeTab === 'vehicles' && isFleetManager && (
+            <Button
+              variant="primary"
+              onClick={handleAddVehicle}
+              className="flex items-center gap-2 py-2.5"
+            >
+              <Plus size={15} />
+              <span>Add Vehicle</span>
+            </Button>
+          )}
+          {activeTab === 'drivers' && isFleetManager && (
+            <Button
+              variant="primary"
+              onClick={handleAddDriver}
+              className="flex items-center gap-2 py-2.5"
+            >
+              <Plus size={15} />
+              <span>Add Driver</span>
+            </Button>
+          )}
         </div>
 
         {/* Global Notices */}
@@ -426,7 +568,7 @@ const Registries = () => {
           <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4">
             <div>
               <h3 className="text-sm font-bold uppercase tracking-wider text-text-primary flex items-center gap-1.5">
-                {activeTab === 'vehicles' ? 'Fleet Inventory assets' : 'Safety Profiles & Cleared Drivers'}
+                {activeTab === 'vehicles' ? 'Fleet Inventory Assets' : 'Safety Profiles & Cleared Drivers'}
               </h3>
               <p className="text-[11px] text-text-muted mt-0.5">
                 {activeTab === 'vehicles' 
@@ -524,26 +666,27 @@ const Registries = () => {
         </div>
       </div>
 
-      {/* Add Vehicle Modal */}
+      {/* Add / Edit Vehicle Modal */}
       <Modal
         isOpen={isVehicleModalOpen}
-        onClose={() => setIsVehicleModalOpen(false)}
-        title="Register Vehicle Asset"
+        onClose={() => { setIsVehicleModalOpen(false); setEditingVehicle(null); }}
+        title={editingVehicle ? `Edit Vehicle — ${editingVehicle.registrationNumber}` : 'Register Vehicle Asset'}
       >
         <form onSubmit={handleVehicleSubmit} className="flex flex-col gap-4">
           <Input
             label="Registration Number (Plate)"
-            placeholder="e.g. TX-892-PL"
+            placeholder="e.g. MH-12-TR-9981"
             value={vehicleForm.registrationNumber}
             onChange={(e) => setVehicleForm({ ...vehicleForm, registrationNumber: e.target.value })}
             error={formErrors.registrationNumber}
             required
+            disabled={!!editingVehicle}
           />
 
           <div className="grid grid-cols-2 gap-4">
             <Input
               label="Manufacturer / Name"
-              placeholder="e.g. Freightliner"
+              placeholder="e.g. Volvo"
               value={vehicleForm.name}
               onChange={(e) => setVehicleForm({ ...vehicleForm, name: e.target.value })}
               error={formErrors.name}
@@ -552,7 +695,7 @@ const Registries = () => {
             
             <Input
               label="Model Version"
-              placeholder="e.g. Cascadia"
+              placeholder="e.g. FMX"
               value={vehicleForm.model}
               onChange={(e) => setVehicleForm({ ...vehicleForm, model: e.target.value })}
               error={formErrors.model}
@@ -610,9 +753,9 @@ const Registries = () => {
           </div>
 
           <Input
-            label="Acquisition Cost (INR)"
+            label="Acquisition Cost (₹)"
             type="number"
-            placeholder="e.g. 1350000"
+            placeholder="e.g. 4500000"
             value={vehicleForm.acquisitionCost}
             onChange={(e) => setVehicleForm({ ...vehicleForm, acquisitionCost: e.target.value })}
             error={formErrors.acquisitionCost}
@@ -620,41 +763,43 @@ const Registries = () => {
           />
 
           <div className="flex justify-end gap-3 mt-4">
-            <Button variant="outline" onClick={() => setIsVehicleModalOpen(false)} className="py-2.5">
+            <Button variant="outline" onClick={() => { setIsVehicleModalOpen(false); setEditingVehicle(null); }} className="py-2.5">
               Cancel
             </Button>
             <Button type="submit" variant="primary" loading={submitting} className="py-2.5">
-              Add Vehicle
+              {editingVehicle ? 'Save Changes' : 'Add Vehicle'}
             </Button>
           </div>
         </form>
       </Modal>
 
-      {/* Add Driver Modal */}
+      {/* Add / Edit Driver Modal */}
       <Modal
         isOpen={isDriverModalOpen}
-        onClose={() => setIsDriverModalOpen(false)}
-        title="Register Driver Profile"
+        onClose={() => { setIsDriverModalOpen(false); setEditingDriver(null); }}
+        title={editingDriver ? `Edit Driver — ${editingDriver.name}` : 'Register Driver Profile'}
       >
         <form onSubmit={handleDriverSubmit} className="flex flex-col gap-4">
           <Input
             label="Driver Full Name"
-            placeholder="e.g. Ranjitha S"
+            placeholder="e.g. John Doe"
             value={driverForm.name}
             onChange={(e) => setDriverForm({ ...driverForm, name: e.target.value })}
             error={formErrors.name}
             required
           />
 
-          <Input
-            label="Workstation Email"
-            type="email"
-            placeholder="e.g. name@trnspot.com"
-            value={driverForm.email}
-            onChange={(e) => setDriverForm({ ...driverForm, email: e.target.value })}
-            error={formErrors.email}
-            required
-          />
+          {!editingDriver && (
+            <Input
+              label="Workstation Email"
+              type="email"
+              placeholder="e.g. name@transitops.com"
+              value={driverForm.email}
+              onChange={(e) => setDriverForm({ ...driverForm, email: e.target.value })}
+              error={formErrors.email}
+              required
+            />
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <Input
@@ -673,7 +818,9 @@ const Registries = () => {
                 { value: 'Class B', label: 'Class B' },
                 { value: 'Class C', label: 'Class C' },
                 { value: 'Heavy Vehicle', label: 'Heavy Goods' },
-                { value: 'Light Vehicle', label: 'Light Passenger' }
+                { value: 'Light Vehicle', label: 'Light Passenger' },
+                { value: 'Commercial Heavy', label: 'Commercial Heavy' },
+                { value: 'Commercial Light', label: 'Commercial Light' }
               ]}
               value={driverForm.licenseCategory}
               onChange={(e) => setDriverForm({ ...driverForm, licenseCategory: e.target.value })}
@@ -693,7 +840,7 @@ const Registries = () => {
 
             <Input
               label="Contact Number"
-              placeholder="e.g. 555-0192"
+              placeholder="e.g. +919999988888"
               value={driverForm.contactNumber}
               onChange={(e) => setDriverForm({ ...driverForm, contactNumber: e.target.value })}
               error={formErrors.contactNumber}
@@ -722,11 +869,11 @@ const Registries = () => {
           </div>
 
           <div className="flex justify-end gap-3 mt-4">
-            <Button variant="outline" onClick={() => setIsDriverModalOpen(false)} className="py-2.5">
+            <Button variant="outline" onClick={() => { setIsDriverModalOpen(false); setEditingDriver(null); }} className="py-2.5">
               Cancel
             </Button>
             <Button type="submit" variant="primary" loading={submitting} className="py-2.5">
-              Add Driver
+              {editingDriver ? 'Save Changes' : 'Add Driver'}
             </Button>
           </div>
         </form>

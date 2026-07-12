@@ -1,4 +1,4 @@
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition, useContext } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
   fetchTripsList, 
@@ -10,6 +10,7 @@ import {
   completeTrip,
   clearTripStatus 
 } from '../redux/tripsSlice';
+import AuthContext from '../context/AuthContext';
 import MainLayout from '../components/layout/MainLayout';
 import DataTable from '../components/common/DataTable';
 import Badge from '../components/common/Badge';
@@ -31,6 +32,10 @@ import {
 
 const Trips = () => {
   const dispatch = useDispatch();
+  const { user } = useContext(AuthContext);
+  const userRole = user?.role;
+  const canAct = userRole === 'Fleet Manager' || userRole === 'Driver';
+
   const { 
     trips, 
     availableVehicles, 
@@ -292,6 +297,9 @@ const Trips = () => {
       label: 'Actions',
       sortable: false,
       render: (row) => {
+        // Safety Officer & Financial Analyst: view-only — no action buttons
+        if (!canAct) return <span className="text-text-muted text-xs">View Only</span>;
+
         if (row.status === 'Draft') {
           return (
             <Button
@@ -423,14 +431,16 @@ const Trips = () => {
             </p>
           </div>
 
-          <Button
-            variant="primary"
-            onClick={() => setIsDraftModalOpen(true)}
-            className="flex items-center gap-2 py-2.5"
-          >
-            <Plus size={15} />
-            <span>Create Trip</span>
-          </Button>
+          {canAct && (
+            <Button
+              variant="primary"
+              onClick={() => setIsDraftModalOpen(true)}
+              className="flex items-center gap-2 py-2.5"
+            >
+              <Plus size={15} />
+              <span>Create Trip</span>
+            </Button>
+          )}
         </div>
 
         {/* Global Notices */}

@@ -6,7 +6,8 @@ import {
   Truck, 
   Wrench, 
   Navigation,
-  Settings as SettingsIcon, 
+  Coins,
+  FileBarChart,
   LogOut, 
   Menu, 
   X, 
@@ -24,13 +25,22 @@ const MainLayout = ({ children }) => {
   const settingsState = useSelector((state) => state.settings);
   const operatorName = settingsState?.profileName || user?.name || 'Neural Operator';
 
-  const menuItems = [
-    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { name: 'Registries', path: '/fleet', icon: Truck },
-    { name: 'Maintenance', path: '/maintenance', icon: Wrench },
-    { name: 'Trips', path: '/trips', icon: Navigation },
-    { name: 'Settings', path: '/settings', icon: SettingsIcon },
+  const userRole = user?.role;
+
+  // Role-based navigation items
+  const allMenuItems = [
+    { name: 'Dashboard', path: '/', icon: LayoutDashboard, roles: null }, // all roles
+    { name: 'Registries', path: '/fleet', icon: Truck, roles: ['Fleet Manager', 'Driver', 'Safety Officer', 'Financial Analyst'] },
+    { name: 'Maintenance', path: '/maintenance', icon: Wrench, roles: ['Fleet Manager', 'Safety Officer', 'Financial Analyst'] },
+    { name: 'Trips', path: '/trips', icon: Navigation, roles: ['Fleet Manager', 'Driver', 'Safety Officer', 'Financial Analyst'] },
+    { name: 'Expenses', path: '/expenses', icon: Coins, roles: ['Fleet Manager', 'Financial Analyst'] },
+    { name: 'Reports', path: '/reports', icon: FileBarChart, roles: ['Fleet Manager', 'Financial Analyst', 'Safety Officer'] },
   ];
+
+  // Filter menu items by role
+  const menuItems = allMenuItems.filter(item => 
+    !item.roles || item.roles.includes(userRole)
+  );
 
   const handleLogout = () => {
     logout();

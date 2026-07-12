@@ -71,6 +71,66 @@ export const addDriver = createAsyncThunk(
   }
 );
 
+// Update an existing vehicle
+export const updateVehicle = createAsyncThunk(
+  'registries/updateVehicle',
+  async ({ id, vehicleData }, { rejectWithValue }) => {
+    try {
+      const response = await axios.put(`/vehicles/${id}`, vehicleData);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to update vehicle'
+      );
+    }
+  }
+);
+
+// Delete a vehicle
+export const deleteVehicle = createAsyncThunk(
+  'registries/deleteVehicle',
+  async (id, { rejectWithValue }) => {
+    try {
+      await axios.delete(`/vehicles/${id}`);
+      return id;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to delete vehicle'
+      );
+    }
+  }
+);
+
+// Update an existing driver
+export const updateDriver = createAsyncThunk(
+  'registries/updateDriver',
+  async ({ id, driverData }, { rejectWithValue }) => {
+    try {
+      const response = await axios.put(`/drivers/${id}`, driverData);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to update driver'
+      );
+    }
+  }
+);
+
+// Delete a driver
+export const deleteDriver = createAsyncThunk(
+  'registries/deleteDriver',
+  async (id, { rejectWithValue }) => {
+    try {
+      await axios.delete(`/drivers/${id}`);
+      return id;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to delete driver'
+      );
+    }
+  }
+);
+
 const initialState = {
   vehicles: [],
   drivers: [],
@@ -146,6 +206,78 @@ const registriesSlice = createSlice({
         state.successMessage = 'Driver profile successfully created in registry!';
       })
       .addCase(addDriver.rejected, (state, action) => {
+        state.submitting = false;
+        state.error = action.payload;
+      })
+
+      // Update Vehicle
+      .addCase(updateVehicle.pending, (state) => {
+        state.submitting = true;
+        state.error = null;
+        state.successMessage = null;
+      })
+      .addCase(updateVehicle.fulfilled, (state, action) => {
+        state.submitting = false;
+        state.successMessage = 'Vehicle updated successfully!';
+        const updated = action.payload?.vehicle;
+        if (updated) {
+          const idx = state.vehicles.findIndex(v => v.id === updated.id);
+          if (idx !== -1) state.vehicles[idx] = updated;
+        }
+      })
+      .addCase(updateVehicle.rejected, (state, action) => {
+        state.submitting = false;
+        state.error = action.payload;
+      })
+
+      // Delete Vehicle
+      .addCase(deleteVehicle.pending, (state) => {
+        state.submitting = true;
+        state.error = null;
+        state.successMessage = null;
+      })
+      .addCase(deleteVehicle.fulfilled, (state, action) => {
+        state.submitting = false;
+        state.successMessage = 'Vehicle deleted successfully!';
+        state.vehicles = state.vehicles.filter(v => v.id !== action.payload);
+      })
+      .addCase(deleteVehicle.rejected, (state, action) => {
+        state.submitting = false;
+        state.error = action.payload;
+      })
+
+      // Update Driver
+      .addCase(updateDriver.pending, (state) => {
+        state.submitting = true;
+        state.error = null;
+        state.successMessage = null;
+      })
+      .addCase(updateDriver.fulfilled, (state, action) => {
+        state.submitting = false;
+        state.successMessage = 'Driver profile updated successfully!';
+        const updated = action.payload?.driver;
+        if (updated) {
+          const idx = state.drivers.findIndex(d => d.id === updated.id);
+          if (idx !== -1) state.drivers[idx] = updated;
+        }
+      })
+      .addCase(updateDriver.rejected, (state, action) => {
+        state.submitting = false;
+        state.error = action.payload;
+      })
+
+      // Delete Driver
+      .addCase(deleteDriver.pending, (state) => {
+        state.submitting = true;
+        state.error = null;
+        state.successMessage = null;
+      })
+      .addCase(deleteDriver.fulfilled, (state, action) => {
+        state.submitting = false;
+        state.successMessage = 'Driver profile deleted successfully!';
+        state.drivers = state.drivers.filter(d => d.id !== action.payload);
+      })
+      .addCase(deleteDriver.rejected, (state, action) => {
         state.submitting = false;
         state.error = action.payload;
       });
