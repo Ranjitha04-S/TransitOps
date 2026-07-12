@@ -1,32 +1,122 @@
 @import "tailwindcss";
 
 @theme {
-  /* Brand colors matching TRNSPOT logistics theme */
-  --color-primary-orange: #F15A24;
-  --color-primary-orange-hover: #D94817;
-  --color-bg-deep-teal: #05181C;
-  --color-bg-card-glass: rgba(11, 46, 54, 0.45);
-  --color-border-glass: rgba(241, 90, 36, 0.15);
-  --color-accent-teal: #114B5F;
-  --color-text-light: #F8FAFC;
-  --color-text-muted: #94A3B8;
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface-alt);
 
-  /* State colors for TransitOps lifecycle */
-  --color-status-available: #10B981;
-  --color-status-ontrip: #3B82F6;
-  --color-status-inshop: #F59E0B;
-  --color-status-retired: #EF4444;
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
 
-  /* Typography overrides */
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --color-secondary: var(--secondary);
+
+  --color-accent: var(--accent);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+
+  --color-border: var(--border);
+
+  --font-sans: "Inter", system-ui, sans-serif;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+}
+
+:root {
+  /* Main Colors */
+  --background: #F7F8FA;
+  --surface: #FFFFFF;
+  --surface-alt: #F3F4F6;
+
+  /* Brand */
+  --primary: #F4A825;
+  --primary-hover: #E39000;
+
+  --secondary: #181818;
+
+  --accent: #FFCB45;
+
+  /* Status */
+  --success: #16A34A;
+  --warning: #F59E0B;
+  --danger: #DC2626;
+  --info: #2563EB;
+
+  /* Text */
+  --text-primary: #171717;
+  --text-secondary: #525252;
+  --text-muted: #737373;
+
+  /* Border */
+  --border: #E7E7E7;
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
-    background-color: var(--color-bg-deep-teal);
-    color: var(--color-text-light);
+    background: var(--background);
+    color: var(--text-primary);
     font-family: var(--font-sans);
     margin: 0;
+    padding: 0;
     min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  img {
+    display: block;
+    max-width: 100%;
+  }
+
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F1F1F1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C6C6C6;
+  border-radius: 100px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* Glassmorphic Utilities (Adapted for Light Theme) */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
 }
