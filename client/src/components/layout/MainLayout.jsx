@@ -8,6 +8,7 @@ import {
   Navigation,
   Coins,
   FileBarChart,
+  Settings as SettingsIcon,
   LogOut, 
   Menu, 
   X, 

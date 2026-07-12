@@ -241,7 +241,7 @@ const Login = () => {
 
   return (
     <AuthLayout>
-      <div className="glass-panel p-5 md:p-6 rounded-2xl shadow-2xl relative border border-border">
+      <div className="glass-panel p-5 md:p-6 rounded-2xl shadow-2xl relative border border-border max-h-[88vh] overflow-y-auto">
         {/* Branding header inside the card */}
         <div className="flex items-center gap-3 justify-center mb-3 pb-3 border-b border-border">
           <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/25">
@@ -372,7 +372,7 @@ const Login = () => {
           </form>
         ) : (
           /* Registration Form */
-          <form onSubmit={handleRegisterSubmit} className="flex flex-col gap-4">
+          <form onSubmit={handleRegisterSubmit} className="flex flex-col gap-2.5">
             <Input
               label="Dispatcher Full Name"
               type="text"
@@ -408,7 +408,7 @@ const Login = () => {
             />
 
             {registerFields.role === 'Driver' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl bg-surface-alt border border-border/60 animate-fadeIn">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 p-3 rounded-xl bg-surface-alt border border-border/60 animate-fadeIn">
                 <Input
                   label="License Number"
                   type="text"
@@ -461,7 +461,7 @@ const Login = () => {
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
               <Input
                 label="Authorization Key"
                 type="password"
