@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { 
   LayoutDashboard, 
   Truck, 
@@ -10,25 +10,17 @@ import {
   LogOut, 
   Menu, 
   X, 
-  User,
-  Bell,
-  Trash2,
-  Check
+  User
 } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
-import { dismissNotification, markAllAsRead, clearAllNotifications } from '../../redux/notificationsSlice';
-import Badge from '../common/Badge';
 
 const MainLayout = ({ children }) => {
-  const dispatch = useDispatch();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   // Redux Selectors
-  const { items: notifications, unreadCount } = useSelector((state) => state.notifications);
   const settingsState = useSelector((state) => state.settings);
   const operatorName = settingsState?.profileName || user?.name || 'Neural Operator';
 
@@ -78,104 +70,8 @@ const MainLayout = ({ children }) => {
 
         {/* Topbar Right Section */}
         <div className="flex items-center gap-4">
-          {/* Bell Icon & Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-              className={`p-2 rounded-full hover:bg-surface-alt text-text-secondary relative transition-colors cursor-pointer
-                ${isNotificationsOpen ? 'bg-surface-alt text-text-primary' : ''}`}
-              title="Notifications Center"
-            >
-              <Bell size={18} />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-danger text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full select-none animate-pulse">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-
-            {/* Notifications Dropdown Panel overlay */}
-            {isNotificationsOpen && (
-              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-surface border border-border rounded-xl shadow-xl z-50 p-4 flex flex-col gap-3 max-h-[420px] overflow-y-auto animate-fadeIn">
-                <div className="flex items-center justify-between border-b border-border pb-2.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-extrabold text-text-primary uppercase tracking-wide">
-                      Alerts Control Center
-                    </span>
-                    {unreadCount > 0 && (
-                      <Badge variant="danger">{unreadCount} New</Badge>
-                    )}
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => dispatch(markAllAsRead())}
-                      className="text-[10px] font-bold text-primary hover:text-primary-hover flex items-center gap-0.5 cursor-pointer"
-                      title="Mark all as read"
-                    >
-                      <Check size={12} />
-                      <span>Read All</span>
-                    </button>
-                    <button
-                      onClick={() => dispatch(clearAllNotifications())}
-                      className="text-[10px] font-bold text-danger hover:text-danger/90 flex items-center gap-0.5 cursor-pointer"
-                      title="Clear notifications"
-                    >
-                      <Trash2 size={11} />
-                      <span>Clear All</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  {notifications.length === 0 ? (
-                    <div className="py-8 text-center flex flex-col items-center justify-center gap-2">
-                      <span className="text-text-muted text-xs font-semibold">
-                        No operations alerts found.
-                      </span>
-                    </div>
-                  ) : (
-                    notifications.map((item) => {
-                      const priorities = {
-                        High: 'bg-danger/5 border-danger/25 text-text-primary',
-                        Medium: 'bg-warning/5 border-warning/25 text-text-primary',
-                        Low: 'bg-surface-alt/55 border-border/80 text-text-primary'
-                      };
-                      return (
-                        <div
-                          key={item.id}
-                          className={`p-3 rounded-lg border text-left flex justify-between gap-3 text-xs leading-relaxed transition-all duration-150
-                            ${priorities[item.priority] || priorities.Low}`}
-                        >
-                          <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-1.5">
-                              <Badge variant={item.priority === 'High' ? 'danger' : item.priority === 'Medium' ? 'warning' : 'neutral'}>
-                                {item.priority} Alert
-                              </Badge>
-                              <span className="text-[10px] font-bold text-text-muted">{item.timestamp}</span>
-                            </div>
-                            <span className="font-extrabold text-text-primary">{item.title}</span>
-                            <p className="text-[11px] text-text-secondary font-medium leading-normal">{item.message}</p>
-                          </div>
-                          
-                          <button
-                            onClick={() => dispatch(dismissNotification(item.id))}
-                            className="text-text-secondary hover:text-text-primary h-fit p-1 bg-surface-alt hover:bg-surface border border-border rounded cursor-pointer self-start"
-                            title="Dismiss Alert"
-                          >
-                            <X size={11} />
-                          </button>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
           {/* User Profile */}
-          <div className="flex items-center gap-2 border-l border-border pl-4">
+          <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-surface-alt border border-border flex items-center justify-center text-text-secondary">
               <User size={16} />
             </div>
