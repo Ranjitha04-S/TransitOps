@@ -12,6 +12,74 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: 'Email, password, and role are required' });
     }
 
+    if (global.isMockMode) {
+      const mockDb = require('../config/mockDb');
+      const usersList = mockDb.getUsers();
+      const driversList = mockDb.getDrivers();
+
+      const existingUser = usersList.find(u => u.email === email);
+      if (existingUser) {
+        return res.status(400).json({ message: 'Email is already registered' });
+      }
+
+      if (role === 'Driver') {
+        if (!name || !licenseNumber || !licenseCategory || !licenseExpiryDate || !contactNumber) {
+          return res.status(400).json({ message: 'Driver registration requires: name, licenseNumber, licenseCategory, licenseExpiryDate, contactNumber' });
+        }
+        const existingDriver = driversList.find(d => d.licenseNumber === licenseNumber);
+        if (existingDriver) {
+          return res.status(400).json({ message: 'License number is already registered' });
+        }
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+
+      const newUser = {
+        id: usersList.length + 1,
+        email,
+        password: hashedPassword,
+        role,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      usersList.push(newUser);
+
+      let newDriver = null;
+      if (role === 'Driver') {
+        newDriver = {
+          id: driversList.length + 1,
+          userId: newUser.id,
+          name,
+          licenseNumber,
+          licenseCategory,
+          licenseExpiryDate,
+          contactNumber,
+          safetyScore: 100,
+          status: 'Available',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        driversList.push(newDriver);
+      }
+
+      return res.status(201).json({
+        message: 'User registered successfully (Mock Mode)',
+        user: {
+          id: newUser.id,
+          email: newUser.email,
+          role: newUser.role,
+          driver: newDriver ? {
+            id: newDriver.id,
+            name: newDriver.name,
+            licenseNumber: newDriver.licenseNumber,
+            status: newDriver.status
+          } : null
+        }
+      });
+    }
+
+    // Standard SQL mode
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       return res.status(400).json({ message: 'Email is already registered' });
@@ -78,6 +146,38 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
+    if (global.isMockMode) {
+      const mockDb = require('../config/mockDb');
+      const usersList = mockDb.getUsers();
+
+      const user = usersList.find(u => u.email === email);
+      if (!user) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+
+      const token = jwt.sign(
+        { id: user.id, email: user.email, role: user.role },
+        JWT_SECRET,
+        { expiresIn: '8h' }
+      );
+
+      return res.json({
+        message: 'Login successful (Mock Mode)',
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role
+        }
+      });
+    }
+
+    // Standard SQL mode
     const user = await User.findOne({ where: { email } });
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
@@ -111,6 +211,25 @@ exports.login = async (req, res) => {
 
 exports.getMe = async (req, res) => {
   try {
+    if (global.isMockMode) {
+      const mockDb = require('../config/mockDb');
+      const usersList = mockDb.getUsers();
+      const driversList = mockDb.getDrivers();
+
+      const userRaw = usersList.find(u => u.id === req.user.id);
+      if (!userRaw) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Clone user and resolve driver association
+      const user = { ...userRaw };
+      delete user.password;
+      user.driver = driversList.find(d => d.userId === user.id) || null;
+
+      return res.json({ user });
+    }
+
+    // Standard SQL mode
     const user = await User.findByPk(req.user.id, {
       attributes: { exclude: ['password'] },
       include: [{ model: Driver, as: 'driver' }]

@@ -5,5 +5,6 @@ const { authenticateToken } = require('../middleware/auth');
 
 router.get('/kpis', authenticateToken, dashboardController.getKPIs);
 router.get('/analytics', authenticateToken, dashboardController.getAnalytics);
+router.post('/simulate', authenticateToken, dashboardController.simulateTrips);
 
 module.exports = router;
