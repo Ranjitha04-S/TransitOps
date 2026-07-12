@@ -227,9 +227,9 @@ const Login = () => {
 
   return (
     <AuthLayout>
-      <div className="glass-panel p-6 md:p-8 rounded-2xl shadow-2xl relative border border-border">
+      <div className="glass-panel p-5 md:p-6 rounded-2xl shadow-2xl relative border border-border">
         {/* Branding header inside the card */}
-        <div className="flex items-center gap-3 justify-center mb-4 pb-4 border-b border-border">
+        <div className="flex items-center gap-3 justify-center mb-3 pb-3 border-b border-border">
           <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/25">
             <svg className="w-5 h-5 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -247,15 +247,10 @@ const Login = () => {
         </div>
 
         {/* Banner header inside card */}
-        <div className="mb-4">
+        <div className="mb-3 text-center">
           <h2 className="text-xl font-extrabold text-text-primary tracking-tight">
             {mode === 'login' ? 'Login' : 'Deploy Account'}
           </h2>
-          <p className="text-text-muted text-xs mt-1">
-            {mode === 'login' 
-              ? 'Provide authorization credentials to access console.' 
-              : 'Configure operational profiles to deploy workstation.'}
-          </p>
         </div>
 
         {/* Global Notices */}
