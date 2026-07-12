@@ -12,6 +12,30 @@ const Login = () => {
   const { login, register } = useAuth();
   const navigate = useNavigate();
 
+  const handleQuickAutofill = async (email, roleLabel) => {
+    setApiError('');
+    setErrors({});
+    const defaultPassword = 'password123';
+    
+    setLoginFields((prev) => ({
+      ...prev,
+      email: email,
+      password: defaultPassword
+    }));
+
+    setLoading(true);
+    try {
+      await login(email, defaultPassword);
+      navigate('/');
+    } catch (err) {
+      console.error(err);
+      const errMsg = err.response?.data?.message || err.message || `Autofill authentication failed for ${roleLabel}.`;
+      setApiError(errMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Mode state: 'login' | 'register'
   const [mode, setMode] = useState('login');
   const [loading, setLoading] = useState(false);
@@ -276,8 +300,48 @@ const Login = () => {
             </div>
 
             <Button type="submit" fullWidth loading={loading}>
-              Sign In to Deploy
+              Sign In 
             </Button>
+
+            <div className="mt-5 pt-4 border-t border-border flex flex-col gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted select-none">
+                Quick Demo Access (Autofill)
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleQuickAutofill('manager@transitops.com', 'Fleet Manager')}
+                  disabled={loading}
+                  className="py-2 px-2.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 text-[10px] font-bold rounded-lg transition-colors cursor-pointer text-center"
+                >
+                  Log in as Manager
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickAutofill('driver@transitops.com', 'Driver')}
+                  disabled={loading}
+                  className="py-2 px-2.5 bg-info/10 hover:bg-info/20 text-info border border-info/20 text-[10px] font-bold rounded-lg transition-colors cursor-pointer text-center"
+                >
+                  Log in as Driver
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickAutofill('safety@transitops.com', 'Safety Officer')}
+                  disabled={loading}
+                  className="py-2 px-2.5 bg-warning/10 hover:bg-warning/20 text-warning border border-warning/20 text-[10px] font-bold rounded-lg transition-colors cursor-pointer text-center"
+                >
+                  Log in as Safety
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickAutofill('finance@transitops.com', 'Financial Analyst')}
+                  disabled={loading}
+                  className="py-2 px-2.5 bg-success/10 hover:bg-success/20 text-success border border-success/20 text-[10px] font-bold rounded-lg transition-colors cursor-pointer text-center"
+                >
+                  Log in as Finance
+                </button>
+              </div>
+            </div>
           </form>
         ) : (
           /* Registration Form */
