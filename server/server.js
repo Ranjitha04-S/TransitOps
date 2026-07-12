@@ -6,7 +6,7 @@ require('dotenv').config();
 const app = express();
 
 app.use(cors({
-  origin: '*', // Allow all origins for the hackathon
+  origin: '*',
   credentials: true
 }));
 
@@ -27,6 +27,7 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     message: 'TransitOps Backend API Server is healthy',
+    mode: global.isMockMode ? 'IN-MEMORY MOCK DATA' : 'STANDARD MYSQL',
     timestamp: new Date()
   });
 });
@@ -34,13 +35,42 @@ app.get('/health', (req, res) => {
 // Database Synchronization & Server Startup
 const PORT = process.env.PORT || 5000;
 
-sequelize.sync({ alter: true })
-  .then(() => {
-    console.log('MySQL Database Connected & Models Synchronized successfully');
+const startServer = async () => {
+  // If environment explicitly requests mock mode, bypass database attempt
+  if (process.env.USE_MOCK === 'true') {
+    console.log('[INFO] Mock environment requested. Initializing database-less mode...');
+    const mockDb = require('./config/mockDb');
+    await mockDb.initializeMockData();
+    global.isMockMode = true;
     app.listen(PORT, () => {
-      console.log(`TransitOps Backend running on port ${PORT}`);
+      console.log(`TransitOps Backend running on port ${PORT} (MOCK DATA MODE ACTIVE)`);
     });
-  })
-  .catch(err => {
-    console.error('Failed to sync MySQL database:', err);
-  });
+    return;
+  }
+
+  try {
+    await sequelize.authenticate();
+    await sequelize.sync({ alter: true });
+    console.log('MySQL Database Connected & Models Synchronized successfully');
+    global.isMockMode = false;
+    app.listen(PORT, () => {
+      console.log(`TransitOps Backend running on port ${PORT} (STANDARD MYSQL ACTIVE)`);
+    });
+  } catch (err) {
+    console.error('MySQL connection failed. Falling back to IN-MEMORY DATABASE...');
+    try {
+      const mockDb = require('./config/mockDb');
+      await mockDb.initializeMockData();
+      global.isMockMode = true;
+      console.log('IN-MEMORY DATABASE initialized successfully.');
+      app.listen(PORT, () => {
+        console.log(`TransitOps Backend running on port ${PORT} (MOCK DATA FALLBACK ACTIVE)`);
+      });
+    } catch (mockErr) {
+      console.error('Failed to initialize mock database:', mockErr);
+      process.exit(1);
+    }
+  }
+};
+
+startServer();

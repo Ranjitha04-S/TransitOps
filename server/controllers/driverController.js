@@ -4,8 +4,34 @@ const { Op } = require('sequelize');
 exports.getDrivers = async (req, res) => {
   try {
     const { status, search } = req.query;
-    const whereClause = {};
 
+    if (global.isMockMode) {
+      const mockDb = require('../config/mockDb');
+      let drivers = [...mockDb.getDrivers()];
+
+      if (status && status !== 'All') {
+        drivers = drivers.filter(d => d.status === status);
+      }
+      if (search) {
+        const query = search.toLowerCase();
+        drivers = drivers.filter(d => 
+          d.name.toLowerCase().includes(query) ||
+          d.licenseNumber.toLowerCase().includes(query) ||
+          d.contactNumber.toLowerCase().includes(query)
+        );
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+      drivers = drivers.map(d => ({
+        ...d,
+        isLicenseExpired: d.licenseExpiryDate < today
+      }));
+
+      return res.json({ drivers });
+    }
+
+    // Standard SQL Mode
+    const whereClause = {};
     if (status && status !== 'All') {
       whereClause.status = status;
     }
@@ -35,7 +61,26 @@ exports.getDrivers = async (req, res) => {
 
 exports.getDriverById = async (req, res) => {
   try {
-    const driver = await Driver.findByPk(req.params.id);
+    const driverId = parseInt(req.params.id);
+
+    if (global.isMockMode) {
+      const mockDb = require('../config/mockDb');
+      const drivers = mockDb.getDrivers();
+      const driver = drivers.find(d => d.id === driverId);
+
+      if (!driver) {
+        return res.status(404).json({ message: 'Driver not found' });
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+      const data = { ...driver };
+      data.isLicenseExpired = data.licenseExpiryDate < today;
+
+      return res.json({ driver: data });
+    }
+
+    // Standard SQL Mode
+    const driver = await Driver.findByPk(driverId);
     if (!driver) {
       return res.status(404).json({ message: 'Driver not found' });
     }
@@ -59,6 +104,34 @@ exports.createDriver = async (req, res) => {
       return res.status(400).json({ message: 'Name, license details, expiry, and contact number are required' });
     }
 
+    if (global.isMockMode) {
+      const mockDb = require('../config/mockDb');
+      const drivers = mockDb.getDrivers();
+
+      const existing = drivers.find(d => d.licenseNumber === licenseNumber);
+      if (existing) {
+        return res.status(400).json({ message: 'License number already registered' });
+      }
+
+      const driver = {
+        id: drivers.length + 1,
+        userId: userId || null,
+        name,
+        licenseNumber,
+        licenseCategory,
+        licenseExpiryDate,
+        contactNumber,
+        safetyScore: safetyScore !== undefined ? parseInt(safetyScore) : 100,
+        status: status || 'Available',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      drivers.push(driver);
+
+      return res.status(201).json({ message: 'Driver profile created successfully (Mock Mode)', driver });
+    }
+
+    // Standard SQL Mode
     const existing = await Driver.findOne({ where: { licenseNumber } });
     if (existing) {
       return res.status(400).json({ message: 'License number already registered' });
@@ -84,7 +157,51 @@ exports.createDriver = async (req, res) => {
 
 exports.updateDriver = async (req, res) => {
   try {
-    const driver = await Driver.findByPk(req.params.id);
+    const driverId = parseInt(req.params.id);
+
+    if (global.isMockMode) {
+      const mockDb = require('../config/mockDb');
+      const drivers = mockDb.getDrivers();
+      const trips = mockDb.getTrips();
+      const driver = drivers.find(d => d.id === driverId);
+
+      if (!driver) {
+        return res.status(404).json({ message: 'Driver not found' });
+      }
+
+      const { name, licenseNumber, licenseCategory, licenseExpiryDate, contactNumber, safetyScore, status, userId } = req.body;
+
+      if (licenseNumber && licenseNumber !== driver.licenseNumber) {
+        const existing = drivers.find(d => d.licenseNumber === licenseNumber);
+        if (existing) {
+          return res.status(400).json({ message: 'License number already registered' });
+        }
+      }
+
+      if (status && status !== driver.status) {
+        if (driver.status === 'On Trip' && status !== 'On Trip') {
+          const activeTrip = trips.find(t => t.driverId === driver.id && t.status === 'Dispatched');
+          if (activeTrip) {
+            return res.status(400).json({ message: 'Cannot manually change driver status while they are dispatched on an active trip' });
+          }
+        }
+      }
+
+      driver.userId = userId !== undefined ? userId : driver.userId;
+      driver.name = name || driver.name;
+      driver.licenseNumber = licenseNumber || driver.licenseNumber;
+      driver.licenseCategory = licenseCategory || driver.licenseCategory;
+      driver.licenseExpiryDate = licenseExpiryDate || driver.licenseExpiryDate;
+      driver.contactNumber = contactNumber || driver.contactNumber;
+      driver.safetyScore = safetyScore !== undefined ? parseInt(safetyScore) : driver.safetyScore;
+      driver.status = status || driver.status;
+      driver.updatedAt = new Date();
+
+      return res.json({ message: 'Driver profile updated successfully (Mock Mode)', driver });
+    }
+
+    // Standard SQL Mode
+    const driver = await Driver.findByPk(driverId);
     if (!driver) {
       return res.status(404).json({ message: 'Driver not found' });
     }
@@ -127,7 +244,32 @@ exports.updateDriver = async (req, res) => {
 
 exports.deleteDriver = async (req, res) => {
   try {
-    const driver = await Driver.findByPk(req.params.id);
+    const driverId = parseInt(req.params.id);
+
+    if (global.isMockMode) {
+      const mockDb = require('../config/mockDb');
+      const drivers = mockDb.getDrivers();
+      const trips = mockDb.getTrips();
+      const driverIdx = drivers.findIndex(d => d.id === driverId);
+
+      if (driverIdx === -1) {
+        return res.status(404).json({ message: 'Driver not found' });
+      }
+
+      const driver = drivers[driverIdx];
+      if (driver.status === 'On Trip') {
+        const activeTrip = trips.find(t => t.driverId === driver.id && t.status === 'Dispatched');
+        if (activeTrip) {
+          return res.status(400).json({ message: 'Cannot delete driver currently assigned to an active trip' });
+        }
+      }
+
+      drivers.splice(driverIdx, 1);
+      return res.json({ message: 'Driver profile deleted successfully (Mock Mode)' });
+    }
+
+    // Standard SQL Mode
+    const driver = await Driver.findByPk(driverId);
     if (!driver) {
       return res.status(404).json({ message: 'Driver not found' });
     }

@@ -3,19 +3,38 @@ const { Parser } = require('json2csv');
 
 exports.exportTripsCSV = async (req, res) => {
   try {
-    const tripsRaw = await Trip.findAll({
-      include: [
-        { model: Vehicle, as: 'vehicle', attributes: ['registrationNumber'] },
-        { model: Driver, as: 'driver', attributes: ['name'] }
-      ]
-    });
+    let trips = [];
 
-    const trips = tripsRaw.map(t => {
-      const data = t.toJSON();
-      data.vehicleRegistration = data.vehicle ? data.vehicle.registrationNumber : 'N/A';
-      data.driverName = data.driver ? data.driver.name : 'N/A';
-      return data;
-    });
+    if (global.isMockMode) {
+      const mockDb = require('../config/mockDb');
+      const tripsRaw = mockDb.getTrips();
+      const vehicles = mockDb.getVehicles();
+      const drivers = mockDb.getDrivers();
+
+      trips = tripsRaw.map(t => {
+        const data = { ...t };
+        const v = vehicles.find(veh => veh.id === data.vehicleId);
+        const d = drivers.find(drv => drv.id === data.driverId);
+        data.vehicleRegistration = v ? v.registrationNumber : 'N/A';
+        data.driverName = d ? d.name : 'N/A';
+        return data;
+      });
+    } else {
+      // Standard SQL Mode
+      const tripsRaw = await Trip.findAll({
+        include: [
+          { model: Vehicle, as: 'vehicle', attributes: ['registrationNumber'] },
+          { model: Driver, as: 'driver', attributes: ['name'] }
+        ]
+      });
+
+      trips = tripsRaw.map(t => {
+        const data = t.toJSON();
+        data.vehicleRegistration = data.vehicle ? data.vehicle.registrationNumber : 'N/A';
+        data.driverName = data.driver ? data.driver.name : 'N/A';
+        return data;
+      });
+    }
 
     const fields = [
       { label: 'Trip ID', value: 'id' },
