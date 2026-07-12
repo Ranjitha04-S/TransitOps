@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Maintenance from './pages/Maintenance';
 
 function App() {
   return (
@@ -12,6 +13,15 @@ function App() {
         element={
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      
+      <Route
+        path="/fleet"
+        element={
+          <ProtectedRoute allowedRoles={['Fleet Manager']}>
+            <Maintenance />
           </ProtectedRoute>
         }
       />
