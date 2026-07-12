@@ -71,6 +71,21 @@ export const downloadCSVReport = createAsyncThunk(
   }
 );
 
+// Thunk to trigger demo data simulation
+export const simulateData = createAsyncThunk(
+  'dashboard/simulateData',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.post('/dashboard/simulate');
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to simulate demo data'
+      );
+    }
+  }
+);
+
 const initialState = {
   kpis: {
     activeVehicles: 0,
@@ -85,6 +100,7 @@ const initialState = {
   kpisLoading: false,
   analyticsLoading: false,
   expenseLoading: false,
+  simulateLoading: false,
   error: null,
   successMessage: null,
 };
@@ -149,6 +165,21 @@ const dashboardSlice = createSlice({
       })
       .addCase(logExpense.rejected, (state, action) => {
         state.expenseLoading = false;
+        state.error = action.payload;
+      })
+
+      // Simulate Demo Data
+      .addCase(simulateData.pending, (state) => {
+        state.simulateLoading = true;
+        state.error = null;
+        state.successMessage = null;
+      })
+      .addCase(simulateData.fulfilled, (state, action) => {
+        state.simulateLoading = false;
+        state.successMessage = action.payload?.message || 'Demo data loaded successfully!';
+      })
+      .addCase(simulateData.rejected, (state, action) => {
+        state.simulateLoading = false;
         state.error = action.payload;
       });
   },

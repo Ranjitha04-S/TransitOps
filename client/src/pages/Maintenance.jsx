@@ -1,4 +1,4 @@
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition, useContext } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
   fetchMaintenanceLogs, 
@@ -7,6 +7,7 @@ import {
   closeMaintenanceLog,
   clearMaintenanceStatus 
 } from '../redux/maintenanceSlice';
+import AuthContext from '../context/AuthContext';
 import MainLayout from '../components/layout/MainLayout';
 import DataTable from '../components/common/DataTable';
 import Badge from '../components/common/Badge';
@@ -18,6 +19,10 @@ import { Plus, Search, Calendar, CheckSquare, AlertTriangle, AlertCircle } from 
 
 const Maintenance = () => {
   const dispatch = useDispatch();
+  const { user } = useContext(AuthContext);
+  const userRole = user?.role;
+  const isFleetManager = userRole === 'Fleet Manager';
+
   const { 
     logs, 
     vehicles, 
@@ -218,6 +223,7 @@ const Maintenance = () => {
       label: 'Actions',
       sortable: false,
       render: (row) => {
+        if (!isFleetManager) return <span className="text-text-muted text-xs">View Only</span>;
         if (row.status !== 'Active') return null;
         return (
           <Button
@@ -291,14 +297,16 @@ const Maintenance = () => {
             </p>
           </div>
 
-          <Button
-            variant="primary"
-            onClick={() => setIsLogModalOpen(true)}
-            className="flex items-center gap-2 py-2.5"
-          >
-            <Plus size={15} />
-            <span>Log Maintenance</span>
-          </Button>
+          {isFleetManager && (
+            <Button
+              variant="primary"
+              onClick={() => setIsLogModalOpen(true)}
+              className="flex items-center gap-2 py-2.5"
+            >
+              <Plus size={15} />
+              <span>Log Maintenance</span>
+            </Button>
+          )}
         </div>
 
         {/* Global Success / Alert Banner */}

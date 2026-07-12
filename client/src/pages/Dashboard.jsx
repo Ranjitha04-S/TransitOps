@@ -1,12 +1,14 @@
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition, useContext } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
   fetchKPIs, 
   fetchAnalytics, 
   logExpense, 
   downloadCSVReport,
+  simulateData,
   clearStatus 
 } from '../redux/dashboardSlice';
+import AuthContext from '../context/AuthContext';
 import MainLayout from '../components/layout/MainLayout';
 import Card from '../components/common/Card';
 import DataTable from '../components/common/DataTable';
@@ -23,17 +25,22 @@ import {
   Truck, 
   Wrench, 
   AlertCircle,
-  Activity
+  Activity,
+  Zap
 } from 'lucide-react';
 
 const Dashboard = () => {
   const dispatch = useDispatch();
+  const { user } = useContext(AuthContext);
+  const userRole = user?.role;
+
   const { 
     kpis, 
     analytics, 
     kpisLoading, 
     analyticsLoading, 
-    expenseLoading, 
+    expenseLoading,
+    simulateLoading,
     error, 
     successMessage 
   } = useSelector((state) => state.dashboard);
@@ -90,7 +97,6 @@ const Dashboard = () => {
     const result = await dispatch(logExpense(payload));
     if (logExpense.fulfilled.match(result)) {
       setIsExpenseModalOpen(false);
-      // Reset form
       setExpenseForm({
         vehicleId: '',
         tripId: '',
@@ -98,12 +104,9 @@ const Dashboard = () => {
         amount: '',
         date: new Date().toISOString().split('T')[0]
       });
-      // Refresh analytics
       dispatch(fetchAnalytics());
       dispatch(fetchKPIs());
-      setTimeout(() => {
-        dispatch(clearStatus());
-      }, 3000);
+      setTimeout(() => dispatch(clearStatus()), 3000);
     }
   };
 
@@ -112,47 +115,64 @@ const Dashboard = () => {
     dispatch(downloadCSVReport());
   };
 
-  // Map analytics list columns
+  // Demo data simulation trigger
+  const handleSimulate = async () => {
+    const result = await dispatch(simulateData());
+    if (simulateData.fulfilled.match(result)) {
+      dispatch(fetchKPIs());
+      dispatch(fetchAnalytics());
+      setTimeout(() => dispatch(clearStatus()), 4000);
+    }
+  };
+
+  // Map analytics list columns — fields match backend response
   const analyticsColumns = [
     { 
-      key: 'vehicleId', 
+      key: 'id', 
       label: 'Vehicle ID', 
       sortable: true,
-      render: (row) => <span className="font-bold text-text-primary">#{row.vehicleId ?? row.id}</span>
+      render: (row) => <span className="font-bold text-text-primary">#{row.id}</span>
     },
     { 
-      key: 'make', 
-      label: 'Make / Model', 
+      key: 'name', 
+      label: 'Name / Type', 
       sortable: true, 
       render: (row) => (
         <div className="flex flex-col">
-          <span className="font-semibold text-text-primary">{row.make ?? row.name ?? 'Volvo'}</span>
-          <span className="text-[10px] text-text-secondary">{row.model ?? 'FH16'}</span>
+          <span className="font-semibold text-text-primary">{row.name}</span>
+          <span className="text-[10px] text-text-secondary">{row.type}</span>
         </div>
       )
     },
     { 
-      key: 'licensePlate', 
-      label: 'License Plate', 
+      key: 'registrationNumber', 
+      label: 'Registration', 
       sortable: true,
-      render: (row) => <Badge variant="neutral">{row.licensePlate ?? row.license_plate ?? 'AA-123-BB'}</Badge>
+      render: (row) => <Badge variant="neutral">{row.registrationNumber}</Badge>
     },
     { 
-      key: 'distanceTraveled', 
-      label: 'Distance Traveled', 
+      key: 'totalDistance', 
+      label: 'Total Distance', 
       sortable: true,
-      render: (row) => {
-        const val = row.distanceTraveled ?? row.distance ?? 0;
-        return <span>{parseFloat(val).toLocaleString()} km</span>;
-      }
+      render: (row) => <span>{parseFloat(row.totalDistance ?? 0).toLocaleString()} km</span>
     },
     { 
       key: 'fuelEfficiency', 
       label: 'Fuel Efficiency', 
       sortable: true,
+      render: (row) => <span>{parseFloat(row.fuelEfficiency ?? 0).toFixed(2)} km/L</span>
+    },
+    { 
+      key: 'netProfit', 
+      label: 'Net Profit', 
+      sortable: true,
       render: (row) => {
-        const val = row.fuelEfficiency ?? row.fuel_efficiency ?? 0;
-        return <span>{parseFloat(val).toFixed(2)} km/L</span>;
+        const val = parseFloat(row.netProfit ?? 0);
+        return (
+          <span className={`font-bold ${val >= 0 ? 'text-success' : 'text-danger'}`}>
+            ₹{val.toLocaleString()}
+          </span>
+        );
       }
     },
     { 
@@ -160,11 +180,10 @@ const Dashboard = () => {
       label: 'ROI %', 
       sortable: true,
       render: (row) => {
-        const val = row.roi ?? 0;
-        const isPositive = parseFloat(val) >= 0;
+        const val = parseFloat(row.roi ?? 0);
         return (
-          <span className={`font-bold ${isPositive ? 'text-success' : 'text-danger'}`}>
-            {isPositive ? '+' : ''}{parseFloat(val).toFixed(1)}%
+          <span className={`font-bold ${val >= 0 ? 'text-success' : 'text-danger'}`}>
+            {val >= 0 ? '+' : ''}{val.toFixed(1)}%
           </span>
         );
       }
@@ -183,12 +202,13 @@ const Dashboard = () => {
   };
 
   const defaultAnalytics = analytics.length > 0 ? analytics : [
-    { id: 1, vehicleId: 101, make: 'Freightliner', model: 'Cascadia', licensePlate: 'TX-892-PL', distanceTraveled: 12450, fuelEfficiency: 3.42, roi: 18.5 },
-    { id: 2, vehicleId: 102, make: 'Volvo', model: 'VNL 860', licensePlate: 'CA-481-QA', distanceTraveled: 8320, fuelEfficiency: 3.85, roi: 12.1 },
-    { id: 3, vehicleId: 103, make: 'Peterbilt', model: '579', licensePlate: 'NY-992-XD', distanceTraveled: 14020, fuelEfficiency: 3.10, roi: 24.8 },
-    { id: 4, vehicleId: 104, make: 'Kenworth', model: 'T680', licensePlate: 'FL-234-ZZ', distanceTraveled: 5120, fuelEfficiency: 3.92, roi: -2.4 },
-    { id: 5, vehicleId: 105, make: 'Mack', model: 'Anthem', licensePlate: 'IL-108-WE', distanceTraveled: 0, fuelEfficiency: 0, roi: 0 }
+    { id: 1, name: 'Volvo FMX', type: 'Truck', registrationNumber: 'MH-12-TR-9981', totalDistance: 350.5, fuelEfficiency: 3.19, netProfit: 72750, roi: 1.62 },
+    { id: 2, name: 'BharatBenz 2823C', type: 'Truck', registrationNumber: 'MH-12-TR-9982', totalDistance: 0, fuelEfficiency: 0, netProfit: 0, roi: 0 },
+    { id: 3, name: 'Tata Winger', type: 'Van', registrationNumber: 'DL-01-VN-4412', totalDistance: 0, fuelEfficiency: 0, netProfit: -25000, roi: -2.08 },
+    { id: 4, name: 'Maruti Suzuki Eeco', type: 'Car', registrationNumber: 'KA-03-CR-2210', totalDistance: 0, fuelEfficiency: 0, netProfit: 0, roi: 0 },
   ];
+
+  const canManageFinance = userRole === 'Fleet Manager' || userRole === 'Financial Analyst';
 
   return (
     <MainLayout>
@@ -205,23 +225,41 @@ const Dashboard = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-            <Button 
-              variant="outline"
-              onClick={handleCSVDownload}
-              className="flex items-center gap-2 border-border text-text-primary hover:bg-surface-alt py-2.5"
-            >
-              <Download size={15} />
-              <span>Export CSV</span>
-            </Button>
+            {/* Fleet Manager only: Load Demo Data */}
+            {userRole === 'Fleet Manager' && (
+              <Button 
+                variant="outline"
+                onClick={handleSimulate}
+                loading={simulateLoading}
+                className="flex items-center gap-2 border-primary/40 text-primary hover:bg-primary/10 py-2.5"
+              >
+                <Zap size={15} />
+                <span>Load Demo Data</span>
+              </Button>
+            )}
+
+            {/* Fleet Manager & Financial Analyst: CSV + Expense */}
+            {canManageFinance && (
+              <Button 
+                variant="outline"
+                onClick={handleCSVDownload}
+                className="flex items-center gap-2 border-border text-text-primary hover:bg-surface-alt py-2.5"
+              >
+                <Download size={15} />
+                <span>Export CSV</span>
+              </Button>
+            )}
             
-            <Button
-              variant="primary"
-              onClick={() => setIsExpenseModalOpen(true)}
-              className="flex items-center gap-2 py-2.5"
-            >
-              <Plus size={15} />
-              <span>Log Expense</span>
-            </Button>
+            {canManageFinance && (
+              <Button
+                variant="primary"
+                onClick={() => setIsExpenseModalOpen(true)}
+                className="flex items-center gap-2 py-2.5"
+              >
+                <Plus size={15} />
+                <span>Log Expense</span>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -246,7 +284,7 @@ const Dashboard = () => {
             title="Fleet Utilization" 
             value={`${defaultKPIs.fleetUtilization}%`}
             icon={Activity}
-            trend="+1.2% vs last week"
+            trend={`${defaultKPIs.activeVehicles} Active Vehicles`}
             trendType="positive"
             loading={kpisLoading}
           >
@@ -274,8 +312,8 @@ const Dashboard = () => {
             title="Maintenance Shop" 
             value={defaultKPIs.vehiclesInMaintenance}
             icon={Wrench}
-            trend="-1 vehicle completed"
-            trendType="positive"
+            trend="Vehicles under repair"
+            trendType={defaultKPIs.vehiclesInMaintenance > 0 ? 'warning' : 'positive'}
             loading={kpisLoading}
           >
             <div className="mt-3 text-[10px] text-text-muted font-semibold uppercase">
@@ -329,10 +367,10 @@ const Dashboard = () => {
             data={defaultAnalytics}
             loading={analyticsLoading}
             searchQuery={searchQuery}
-            searchKeys={['make', 'model', 'licensePlate', 'vehicleId']}
+            searchKeys={['name', 'registrationNumber', 'type']}
             pageSize={5}
             emptyTitle="No Vehicle Analytics Found"
-            emptyDescription="We couldn't retrieve or filter the financial metrics array."
+            emptyDescription="Run 'Load Demo Data' to populate the analytics or complete some trips."
           />
         </div>
       </div>
@@ -347,7 +385,7 @@ const Dashboard = () => {
           <Input
             label="Vehicle ID"
             type="number"
-            placeholder="e.g. 101"
+            placeholder="e.g. 1"
             value={expenseForm.vehicleId}
             onChange={(e) => setExpenseForm({ ...expenseForm, vehicleId: e.target.value })}
             error={formErrors.vehicleId}
@@ -357,7 +395,7 @@ const Dashboard = () => {
           <Input
             label="Trip ID (Optional)"
             type="number"
-            placeholder="e.g. 1002"
+            placeholder="e.g. 3"
             value={expenseForm.tripId}
             onChange={(e) => setExpenseForm({ ...expenseForm, tripId: e.target.value })}
           />
@@ -366,9 +404,7 @@ const Dashboard = () => {
             label="Expense Category"
             options={[
               { value: 'Toll', label: 'Tolls & Telemetry Gates' },
-              { value: 'Fuel', label: 'Fuel Invoicing' },
-              { value: 'Maintenance', label: 'Maintenance & Shop Repairs' },
-              { value: 'Misc', label: 'Miscellaneous Invoices' }
+              { value: 'Other', label: 'Miscellaneous Invoices' }
             ]}
             value={expenseForm.type}
             onChange={(e) => setExpenseForm({ ...expenseForm, type: e.target.value })}
@@ -376,7 +412,7 @@ const Dashboard = () => {
           />
 
           <Input
-            label="Expense Amount ($)"
+            label="Expense Amount (₹)"
             type="number"
             step="0.01"
             placeholder="e.g. 250.00"
